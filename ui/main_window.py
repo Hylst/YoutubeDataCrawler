@@ -11,7 +11,7 @@ la navigation entre les différents panneaux.
 import sys
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 try:
     from PyQt6.QtWidgets import (

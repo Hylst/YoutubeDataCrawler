@@ -124,7 +124,7 @@ class StreamlitApp:
         """
         try:
             self.config_manager = ConfigManager()
-            config = self.config_manager.load_config()
+            config = self.config_manager.get_config()
             
             if config:
                 self._initialize_components(config)

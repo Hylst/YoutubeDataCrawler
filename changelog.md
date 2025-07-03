@@ -1,5 +1,45 @@
 # Changelog
 
+## [2025-01-XX] - LLM Integration & Configuration Updates
+
+### ✨ Added
+- **New Module**: `core/llm_integration.py` - Module d'intégration LLM complet
+  - Support pour DeepSeek, OpenAI, Anthropic, Google Gemini
+  - Gestion centralisée des configurations LLM
+  - Système de fallback et gestion d'erreurs robuste
+  - Interface unifiée pour tous les fournisseurs LLM
+- **Crédits**: Ajout des crédits pour Geoffroy Streit dans `main.py`
+
+### 🔧 Fixed
+- **Configuration Pydantic**: Résolu les erreurs "Extra inputs are not permitted" en ajoutant les champs manquants à AppConfig
+- **Configuration**: Configuré DeepSeek v3 comme modèle LLM par défaut
+- **Import Error**: Corrigé l'import manquant de `List` dans `ui/main_window.py`
+- **LLM Integration**: Corrigé l'erreur d'import `LLMIntegration` en fixant la méthode `load_config`
+- **Configuration Manager**: Remplacé les appels `load_config()` par `get_config()` dans main.py et streamlit_app.py
+- **API Keys**: Corrigé l'accès aux clés API avec `get_secret_value()` pour les types SecretStr
+- **Configuration OpenAI**: Mise à jour des modèles OpenAI dans la configuration
+- **Format des modèles**: Conversion des listes de modèles en chaînes séparées par des virgules
+
+### 📝 Updated
+- **Configuration par défaut**: DeepSeek défini comme fournisseur LLM principal
+- **Modèle par défaut**: `deepseek-chat` configuré comme modèle par défaut
+- **Documentation**: Mise à jour de `.env.example` avec les nouvelles configurations DeepSeek
+- **Commentaires**: Recommandation de DeepSeek v3 dans la documentation
+
+### 🎯 Technical Details
+- Classe `LLMIntegration` avec support multi-fournisseurs
+- Gestion automatique des clés API et configurations
+- Système de retry et timeout pour les requêtes LLM
+- Validation des configurations avec Pydantic
+- Interface cohérente pour tous les modèles LLM
+
+### 📋 Next Steps
+- [ ] Tests unitaires pour le module `core.llm_integration`
+- [ ] Interface utilisateur pour la sélection de modèles LLM
+- [ ] Optimisation des performances pour les requêtes LLM
+- [ ] Ajout de métriques et monitoring des requêtes
+- [ ] Documentation utilisateur pour la configuration LLM
+
 ## [2024-01-XX] - Dependency Management Fixes
 
 ### 🔧 Fixed

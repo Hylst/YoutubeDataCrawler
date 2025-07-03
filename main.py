@@ -6,6 +6,10 @@ YouTube Data Analyzer - Application principale
 
 Application modulaire pour l'analyse de contenu YouTube
 avec génération IA et export multi-formats.
+
+Auteur: Geoffroy Streit
+Version: 1.0.0
+Date: 2025
 """
 
 import os
@@ -37,7 +41,7 @@ error_handler = get_error_handler()
 # Initialize configuration manager
 try:
     config_manager = ConfigManager()
-    config = config_manager.load_config()
+    config = config_manager.get_config()
     
     if config:
         print("✅ Configuration loaded successfully.")

@@ -41,17 +41,17 @@ class LLMConfig(BaseSettings):
     openrouter_api_key: Optional[SecretStr] = Field(None, description="OpenRouter API key")
     x_ai_api_key: Optional[SecretStr] = Field(None, description="X.AI API key")
     
-    # Default settings
-    default_provider: str = Field("OpenAI", description="Default LLM provider")
-    default_model: str = Field("gpt-4o", description="Default LLM model")
+    # Default settings - DeepSeek v3 par défaut
+    default_provider: str = Field("DeepSeek", description="Default LLM provider")
+    default_model: str = Field("deepseek-chat", description="Default LLM model")
     
     # Model configurations
-    openai_models: List[str] = Field(["gpt-4o", "gpt-4-turbo"], description="Available OpenAI models")
-    anthropic_models: List[str] = Field(["claude-3-5-sonnet", "claude-3-opus"], description="Available Anthropic models")
-    google_models: List[str] = Field(["gemini-2.5-pro", "gemini-2.5-flash"], description="Available Google models")
-    deepseek_models: List[str] = Field(["deepseek-v3", "r1"], description="Available DeepSeek models")
-    openrouter_models: List[str] = Field(["DeepSeek/R1-0528", "Google/Gemini-2.0-Flash-Experimental"], description="Available OpenRouter models")
-    x_ai_models: List[str] = Field(["grok-3-beta", "grok-3-mini-beta"], description="Available X.AI models")
+    openai_models: str = Field("gpt-4o,gpt-4-turbo,gpt-3.5-turbo", description="Available OpenAI models (comma-separated)")
+    anthropic_models: str = Field("claude-3-5-sonnet,claude-3-opus,claude-3-sonnet", description="Available Anthropic models (comma-separated)")
+    google_models: str = Field("gemini-pro,gemini-pro-vision", description="Available Google models (comma-separated)")
+    deepseek_models: str = Field("deepseek-chat,deepseek-coder", description="Available DeepSeek models (comma-separated)")
+    openrouter_models: str = Field("DeepSeek/R1-0528,Google/Gemini-2.0-Flash-Experimental", description="Available OpenRouter models (comma-separated)")
+    x_ai_models: str = Field("grok-3-beta,grok-3-mini-beta", description="Available X.AI models (comma-separated)")
     
     # Request settings
     max_tokens: int = Field(2000, description="Maximum tokens per request")
@@ -216,6 +216,28 @@ class AppConfig(BaseSettings):
     version: str = Field("1.0.0", description="Application version")
     debug: bool = Field(False, description="Debug mode")
     
+    # LLM API Keys (direct access for compatibility)
+    deepseek_api_key: Optional[SecretStr] = Field(None, description="DeepSeek API key")
+    openrouter_api_key: Optional[SecretStr] = Field(None, description="OpenRouter API key")
+    huggingface_api_key: Optional[SecretStr] = Field(None, description="HuggingFace API key")
+    
+    # Default LLM settings (direct access for compatibility)
+    default_llm_provider: str = Field("DeepSeek", description="Default LLM provider")
+    default_llm_model: str = Field("deepseek-chat", description="Default LLM model")
+    
+    # Model configurations (direct access for compatibility)
+    openai_models: str = Field("gpt-4o,gpt-4-turbo,gpt-3.5-turbo", description="Available OpenAI models")
+    anthropic_models: str = Field("claude-3-5-sonnet,claude-3-opus,claude-3-sonnet", description="Available Anthropic models")
+    google_models: str = Field("gemini-2.5-pro,gemini-2.5-flash", description="Available Google models")
+    deepseek_models: str = Field("deepseek-v3,r1", description="Available DeepSeek models")
+    openrouter_models: str = Field("DeepSeek/R1-0528,Google/Gemini-2.0-Flash-Experimental", description="Available OpenRouter models")
+    x_ai_models: str = Field("grok-3-beta,grok-3-mini-beta", description="Available X.AI models")
+    
+    # Image generation settings (direct access for compatibility)
+    default_image_provider: str = Field("HuggingFace", description="Default image generation provider")
+    default_image_model: str = Field("black-forest-labs/FLUX.1-schnell", description="Default image generation model")
+    huggingface_image_models: str = Field("black-forest-labs/FLUX.1-schnell,evalstate/flux1_schnell", description="Available HuggingFace models")
+    
     # Sub-configurations
     youtube: YouTubeAPIConfig = Field(default_factory=YouTubeAPIConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
@@ -228,7 +250,8 @@ class AppConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="allow"  # Allow extra fields from environment
     )
 
 class ConfigManager:
