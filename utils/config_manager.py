@@ -346,9 +346,32 @@ class ConfigManager:
             "warnings": warnings
         }
     
-    def get_config_summary(self) -> str:
+    def get_config_summary(self) -> Dict[str, bool]:
         """
-        Generate a summary of the current configuration.
+        Generate a summary of the current configuration status.
+        
+        Returns:
+            Dict[str, bool]: Configuration status by category
+        """
+        if self.config is None:
+            return {"configuration_loaded": False}
+        
+        return {
+            "youtube_api": bool(self.config.youtube.api_key),
+            "openai_api": bool(self.config.llm.openai_api_key),
+            "anthropic_api": bool(self.config.llm.anthropic_api_key),
+            "google_api": bool(self.config.llm.google_api_key),
+            "deepseek_api": bool(self.config.llm.deepseek_api_key),
+            "openrouter_api": bool(self.config.llm.openrouter_api_key),
+            "x_ai_api": bool(self.config.llm.x_ai_api_key),
+            "huggingface_api": bool(self.config.image_gen.huggingface_api_key),
+            "database_configured": bool(self.config.database.path),
+            "logging_configured": bool(self.config.logging.level)
+        }
+    
+    def get_config_summary_text(self) -> str:
+        """
+        Generate a detailed text summary of the current configuration.
         
         Returns:
             str: Configuration summary

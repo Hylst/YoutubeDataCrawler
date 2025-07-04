@@ -526,6 +526,41 @@ def create_user_friendly_message(error: Exception) -> str:
         else:
             return f"An unexpected error occurred: {str(error)}"
 
+class YouTubeAnalyzerError(BaseAppError):
+    """
+    Custom exception for YouTube Data Analyzer application.
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        component: Optional[str] = None,
+        **kwargs
+    ):
+        details = {
+            "component": component
+        }
+        super().__init__(
+            message,
+            category=ErrorCategory.UNKNOWN,
+            severity=ErrorSeverity.MEDIUM,
+            details=details,
+            **kwargs
+        )
+
+def handle_errors(reraise: bool = False, log_errors: bool = True):
+    """
+    Alias for handle_exceptions decorator for backward compatibility.
+    
+    Args:
+        reraise (bool): Whether to reraise exceptions
+        log_errors (bool): Whether to log errors
+        
+    Returns:
+        Callable: Decorated function
+    """
+    return handle_exceptions(reraise=reraise, log_errors=log_errors)
+
 # Global error handler instance
 _global_error_handler: Optional[ErrorHandler] = None
 

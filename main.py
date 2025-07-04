@@ -45,12 +45,19 @@ try:
     
     if config:
         print("✅ Configuration loaded successfully.")
-        config_summary = config_manager.get_config_summary()
-        
-        # Display configuration status
-        for category, status in config_summary.items():
-            status_icon = "✅" if status else "❌"
-            print(f"{status_icon} {category.replace('_', ' ').title()}: {'Configured' if status else 'Not Configured'}")
+        try:
+            config_summary = config_manager.get_config_summary()
+            
+            # Display configuration status
+            if isinstance(config_summary, dict):
+                for category, status in config_summary.items():
+                    status_icon = "✅" if status else "❌"
+                    print(f"{status_icon} {category.replace('_', ' ').title()}: {'Configured' if status else 'Not Configured'}")
+            else:
+                # Si c'est une chaîne, l'afficher directement
+                print(config_summary)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not display configuration summary: {str(e)}")
     else:
         print("⚠️ Warning: Configuration could not be loaded properly.")
         print("Some features may not work correctly.")
@@ -167,7 +174,9 @@ def launch_pyqt6_interface():
         logger.info("Installez PyQt6 avec: pip install PyQt6")
         return False
     except Exception as e:
+        import traceback
         logger.error(f"Erreur lors du lancement de PyQt6: {str(e)}")
+        logger.error(f"Traceback complet: {traceback.format_exc()}")
         return False
     
     return True

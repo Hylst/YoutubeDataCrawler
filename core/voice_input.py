@@ -11,7 +11,7 @@ la dictée de prompts pour la génération de contenu.
 import logging
 import threading
 import time
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Dict, Any, List
 
 try:
     import speech_recognition as sr

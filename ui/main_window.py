@@ -39,7 +39,7 @@ from core.presets import PresetManager
 from core.filters import DataFilter
 from core.export import ExportManager
 from core.voice_input import VoiceInputManager
-from database.db_init import get_db_connection
+from database.db_init import get_connection
 
 # Configuration du logging
 logger = logging.getLogger(__name__)
@@ -65,13 +65,27 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
             raise ImportError("PyQt6 n'est pas disponible. Installez PyQt6 pour utiliser l'interface graphique.")
         
         # Initialisation des gestionnaires
-        self.db_connection = get_db_connection()
-        self.youtube_api = YouTubeAPI()
+        # Get database path from project root
+        from pathlib import Path
+        import os
+        project_root = Path(__file__).parent.parent
+        db_path = project_root / 'data' / 'youtube_analyzer.db'
+        self.db_connection = get_connection(str(db_path))
+        
+        # Get YouTube API key from environment
+        youtube_api_key = os.getenv('YOUTUBE_API_KEY', '')
+        self.youtube_api = YouTubeAPI(youtube_api_key) if youtube_api_key else None
         self.llm_manager = LLMManager()
-        self.image_manager = ImageGeneratorManager()
+        
+        # Create output directory for generated images
+        images_output_dir = project_root / 'generated_images'
+        self.image_manager = ImageGeneratorManager(str(images_output_dir))
         self.preset_manager = PresetManager(self.db_connection)
-        self.data_filter = DataFilter(self.db_connection)
-        self.export_manager = ExportManager(self.db_connection)
+        self.data_filter = DataFilter()
+        
+        # Create output directory for exports
+        exports_output_dir = project_root / 'exports'
+        self.export_manager = ExportManager(str(exports_output_dir), self.db_connection)
         self.voice_manager = VoiceInputManager()
         
         # Variables d'état
