@@ -119,19 +119,27 @@ class YouTubeAPI:
         
         return None
     
-    def get_video_details(self, video_id: str) -> Optional[Dict]:
+    def get_video_details(self, video_id: str, extended: bool = False) -> Optional[Dict]:
         """
         Récupère les détails d'une vidéo YouTube.
         
         Args:
             video_id (str): ID de la vidéo
+            extended (bool): Si True, récupère des informations étendues
         
         Returns:
             dict: Informations de la vidéo ou None si erreur
         """
         try:
+            # Parties de base
+            parts = ['snippet', 'statistics', 'contentDetails']
+            
+            # Parties étendues si demandées
+            if extended:
+                parts.extend(['status', 'topicDetails', 'recordingDetails', 'liveStreamingDetails'])
+            
             request = self.youtube.videos().list(
-                part='snippet,statistics,contentDetails',
+                part=','.join(parts),
                 id=video_id
             )
             response = request.execute()
@@ -142,7 +150,7 @@ class YouTubeAPI:
             
             video = response['items'][0]
             
-            # Formatage des données
+            # Formatage des données de base
             video_data = {
                 'video_id': video_id,
                 'title': video['snippet']['title'],
@@ -160,7 +168,63 @@ class YouTubeAPI:
                 'thumbnail_url': video['snippet']['thumbnails'].get('high', {}).get('url', '')
             }
             
-            logger.info(f"Détails récupérés pour la vidéo: {video_data['title']}")
+            # Ajout des données étendues si demandées
+            if extended:
+                # Informations de contenu détaillées
+                content_details = video.get('contentDetails', {})
+                video_data.update({
+                    'definition': content_details.get('definition', ''),  # hd, sd
+                    'caption': content_details.get('caption', ''),  # true/false
+                    'licensed_content': content_details.get('licensedContent', False),
+                    'dimension': content_details.get('dimension', ''),  # 2d, 3d
+                    'projection': content_details.get('projection', '')  # rectangular, 360
+                })
+                
+                # Statut de la vidéo
+                status = video.get('status', {})
+                video_data.update({
+                    'privacy_status': status.get('privacyStatus', ''),  # public, private, unlisted
+                    'upload_status': status.get('uploadStatus', ''),  # processed, uploaded, etc.
+                    'license': status.get('license', ''),  # youtube, creativeCommon
+                    'embeddable': status.get('embeddable', True),
+                    'public_stats_viewable': status.get('publicStatsViewable', True)
+                })
+                
+                # Sujets/Topics
+                topic_details = video.get('topicDetails', {})
+                video_data.update({
+                    'topic_categories': json.dumps(topic_details.get('topicCategories', [])),
+                    'relevant_topic_ids': json.dumps(topic_details.get('relevantTopicIds', []))
+                })
+                
+                # Informations de diffusion en direct
+                live_streaming = video.get('liveStreamingDetails', {})
+                if live_streaming:
+                    video_data.update({
+                        'actual_start_time': live_streaming.get('actualStartTime', ''),
+                        'actual_end_time': live_streaming.get('actualEndTime', ''),
+                        'scheduled_start_time': live_streaming.get('scheduledStartTime', ''),
+                        'concurrent_viewers': live_streaming.get('concurrentViewers', 0)
+                    })
+                
+                # Informations d'enregistrement
+                recording_details = video.get('recordingDetails', {})
+                if recording_details:
+                    video_data.update({
+                        'recording_date': recording_details.get('recordingDate', ''),
+                        'location_description': recording_details.get('locationDescription', '')
+                    })
+                
+                # Informations supplémentaires du snippet
+                snippet = video['snippet']
+                video_data.update({
+                    'default_audio_language': snippet.get('defaultAudioLanguage', ''),
+                    'live_broadcast_content': snippet.get('liveBroadcastContent', 'none'),
+                    'thumbnails_standard': snippet['thumbnails'].get('standard', {}).get('url', ''),
+                    'thumbnails_maxres': snippet['thumbnails'].get('maxres', {}).get('url', '')
+                })
+            
+            logger.info(f"Détails {'étendus ' if extended else ''}récupérés pour la vidéo: {video_data['title']}")
             return video_data
         
         except HttpError as e:

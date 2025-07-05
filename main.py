@@ -49,13 +49,9 @@ try:
             config_summary = config_manager.get_config_summary()
             
             # Display configuration status
-            if isinstance(config_summary, dict):
-                for category, status in config_summary.items():
-                    status_icon = "✅" if status else "❌"
-                    print(f"{status_icon} {category.replace('_', ' ').title()}: {'Configured' if status else 'Not Configured'}")
-            else:
-                # Si c'est une chaîne, l'afficher directement
-                print(config_summary)
+            for category, status in config_summary.items():
+                status_icon = "✅" if status else "❌"
+                print(f"{status_icon} {category.replace('_', ' ').title()}: {'Configured' if status else 'Not Configured'}")
         except Exception as e:
             print(f"⚠️ Warning: Could not display configuration summary: {str(e)}")
     else:

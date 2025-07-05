@@ -65,43 +65,43 @@ def initialize_database(db_path):
 
 def create_default_presets(cursor):
     """
-    Crée des presets par défaut dans la base de données.
+    Crée des presets par défaut dans la base de données avec informations étendues.
     
     Args:
         cursor: Curseur SQLite3 actif
     """
     default_presets = [
         {
-            'name': 'Vidéos populaires',
-            'description': 'Filtre pour les vidéos avec plus de 100 000 vues',
+            'name': 'Informations de base',
+            'description': 'Informations essentielles: nom, auteur, descriptif, thumbnail',
             'content_type': 'video',
-            'filters': '{"min_views": 100000, "min_duration": "00:05:00"}',
+            'filters': '{"extended_info": false, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration"]}',
             'llm_model': 'gpt-3.5-turbo',
             'image_model': 'stable-diffusion',
-            'export_format': 'markdown',
-            'ui_template': 'standard',
+            'export_format': 'json',
+            'ui_template': 'basic',
             'is_default': 1
         },
         {
-            'name': 'Chaînes récentes',
-            'description': 'Filtre pour les chaînes créées dans les 2 dernières années',
-            'content_type': 'channel',
-            'filters': '{"max_age_days": 730}',
-            'llm_model': 'claude-instant',
+            'name': 'Analyse complète avec statistiques',
+            'description': 'Analyse détaillée avec statistiques et métadonnées',
+            'content_type': 'video',
+            'filters': '{"extended_info": true, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration", "view_count", "like_count", "comment_count", "tags", "category_id", "language", "definition", "caption", "privacy_status", "topic_categories", "default_audio_language"]}',
+            'llm_model': 'claude-3-sonnet',
             'image_model': 'stable-diffusion',
-            'export_format': 'json',
-            'ui_template': 'compact',
+            'export_format': 'xlsx',
+            'ui_template': 'detailed',
             'is_default': 0
         },
         {
-            'name': 'Playlists éducatives',
-            'description': 'Filtre pour les playlists contenant des vidéos éducatives',
-            'content_type': 'playlist',
-            'filters': '{"keywords": ["tutoriel", "cours", "apprendre", "formation"]}',
+            'name': 'Analyse technique avancée',
+            'description': 'Analyse technique complète avec toutes les métadonnées disponibles',
+            'content_type': 'video',
+            'filters': '{"extended_info": true, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration", "view_count", "like_count", "comment_count", "tags", "category_id", "language", "definition", "caption", "licensed_content", "dimension", "projection", "privacy_status", "upload_status", "license", "embeddable", "public_stats_viewable", "topic_categories", "relevant_topic_ids", "default_audio_language", "live_broadcast_content", "thumbnails_standard", "thumbnails_maxres", "actual_start_time", "actual_end_time", "scheduled_start_time", "concurrent_viewers", "recording_date", "location_description"]}',
             'llm_model': 'gpt-4',
             'image_model': 'midjourney-api',
-            'export_format': 'markdown',
-            'ui_template': 'detailed',
+            'export_format': 'json',
+            'ui_template': 'advanced',
             'is_default': 0
         }
     ]

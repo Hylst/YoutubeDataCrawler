@@ -18,6 +18,35 @@ CREATE TABLE IF NOT EXISTS videos (
     category_id TEXT,
     language TEXT,
     thumbnail_url TEXT,
+    
+    -- Extended video information
+    definition TEXT, -- hd, sd
+    caption TEXT, -- true, false
+    licensed_content BOOLEAN DEFAULT 0,
+    dimension TEXT, -- 2d, 3d
+    projection TEXT, -- rectangular, 360
+    privacy_status TEXT, -- public, private, unlisted
+    upload_status TEXT, -- processed, uploaded, etc.
+    license TEXT, -- youtube, creativeCommon
+    embeddable BOOLEAN DEFAULT 1,
+    public_stats_viewable BOOLEAN DEFAULT 1,
+    topic_categories TEXT, -- JSON array as string
+    relevant_topic_ids TEXT, -- JSON array as string
+    default_audio_language TEXT,
+    live_broadcast_content TEXT, -- live, none, upcoming
+    thumbnails_standard TEXT,
+    thumbnails_maxres TEXT,
+    
+    -- Live streaming details
+    actual_start_time DATETIME,
+    actual_end_time DATETIME,
+    scheduled_start_time DATETIME,
+    concurrent_viewers INTEGER DEFAULT 0,
+    
+    -- Recording details
+    recording_date DATETIME,
+    location_description TEXT,
+    
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
