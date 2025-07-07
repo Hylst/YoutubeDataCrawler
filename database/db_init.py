@@ -72,9 +72,9 @@ def create_default_presets(cursor):
     """
     default_presets = [
         {
-            'name': 'Informations de base',
-            'description': 'Informations essentielles: nom, auteur, descriptif, thumbnail',
-            'content_type': 'video',
+            'name': 'Informations de base 📋',
+            'description': 'Nom de la vidéo, auteur, descriptif, thumbnail\nExtraction rapide et légère\nIdéal pour un aperçu général',
+            'content_type': 'auto',
             'filters': '{"extended_info": false, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration"]}',
             'llm_model': 'gpt-3.5-turbo',
             'image_model': 'stable-diffusion',
@@ -83,9 +83,9 @@ def create_default_presets(cursor):
             'is_default': 1
         },
         {
-            'name': 'Analyse complète avec statistiques',
-            'description': 'Analyse détaillée avec statistiques et métadonnées',
-            'content_type': 'video',
+            'name': 'Analyse complète avec statistiques 📊',
+            'description': 'Toutes les informations de base + statistiques de performance\nVues, likes, commentaires, tags, catégories\nMétadonnées importantes (langue, sous-titres, confidentialité)',
+            'content_type': 'auto',
             'filters': '{"extended_info": true, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration", "view_count", "like_count", "comment_count", "tags", "category_id", "language", "definition", "caption", "privacy_status", "topic_categories", "default_audio_language"]}',
             'llm_model': 'claude-3-sonnet',
             'image_model': 'stable-diffusion',
@@ -94,9 +94,9 @@ def create_default_presets(cursor):
             'is_default': 0
         },
         {
-            'name': 'Analyse technique avancée',
-            'description': 'Analyse technique complète avec toutes les métadonnées disponibles',
-            'content_type': 'video',
+            'name': 'Analyse technique avancée 🔬',
+            'description': 'Extraction complète de toutes les métadonnées disponibles\nDétails techniques, streaming en direct, enregistrement\nMiniatures haute résolution, licences, projections 360°',
+            'content_type': 'auto',
             'filters': '{"extended_info": true, "fields": ["title", "channel_title", "description", "thumbnail_url", "published_at", "duration", "view_count", "like_count", "comment_count", "tags", "category_id", "language", "definition", "caption", "licensed_content", "dimension", "projection", "privacy_status", "upload_status", "license", "embeddable", "public_stats_viewable", "topic_categories", "relevant_topic_ids", "default_audio_language", "live_broadcast_content", "thumbnails_standard", "thumbnails_maxres", "actual_start_time", "actual_end_time", "scheduled_start_time", "concurrent_viewers", "recording_date", "location_description"]}',
             'llm_model': 'gpt-4',
             'image_model': 'midjourney-api',

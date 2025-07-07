@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+    xmlns:youtube="http://youtube.com/ns/1.0/">
+   
+   <!-- Métadonnées Dublin Core -->
+   <dc:title>Cours Hyper-Complet sur le calcul des probabilités</dc:title>
+   <dc:description>Maîtrisez les Bases du Calcul des Probabilités: Un Guide Complet pour Débutants
+Description:
+Dans cette vidéo éducative, l&apos;instructeur propose un cours complet et simplifié sur le calcul des probabilités, visant à rendre cette matière accessible même pour les débutants. La vidéo commence par une introduction au vocabulaire spécifique des probabilités, en expliquant des termes tels que &quot;probabilité&quot;, &quot;expérience aléatoire&quot;, &quot;événement&quot;, &quot;univers&quot;, et bien d&apos;autres.
+
+Concepts Clés et Points Forts:
+
+Probabilité: L&apos;évaluation de la réalisation d&apos;un événement, comprise entre 0 (impossible) et 1 (certain).
+Expérience Aléatoire: Une expérience dont le résultat n&apos;est pas connu à l&apos;avance.
+Événement: Un ensemble de résultats possibles dans une expérience aléatoire.
+Univers (Ω): L&apos;ensemble de tous les résultats possibles d&apos;une expérience aléatoire.
+Événement Certain et Impossible: Un événement certain réalise tout l&apos;univers, tandis qu&apos;un événement impossible est un ensemble vide.
+Union et Inters</dc:description>
+   <dc:creator>El khader</dc:creator>
+   <dc:source>YouTube</dc:source>
+   <dc:rights>© El khader</dc:rights>
+   
+   <!-- Métadonnées XMP -->
+   <xmp:CreateDate>2022-05-19T09:00:12Z</xmp:CreateDate>
+   <xmp:ModifyDate>2025-07-07T23:02:59.035629</xmp:ModifyDate>
+   
+   <!-- Métadonnées YouTube spécifiques -->
+   <youtube:videoId>4-KQN655XkY</youtube:videoId>
+   <youtube:channelId>UCaxZ5jsnbR_TJ86VxYlyTHA</youtube:channelId>
+   <youtube:duration>PT4H1S</youtube:duration>
+   <youtube:viewCount>201484</youtube:viewCount>
+   <youtube:likeCount>4239</youtube:likeCount>
+   <youtube:commentCount>146</youtube:commentCount>
+   <youtube:categoryId>27</youtube:categoryId>
+   <youtube:language>fr</youtube:language>
+   
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

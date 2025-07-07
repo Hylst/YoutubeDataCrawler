@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+    xmlns:youtube="http://youtube.com/ns/1.0/">
+   
+   <!-- Métadonnées Dublin Core -->
+   <dc:title>Volume d&apos;un pavé dont les dimensions sont des fractions</dc:title>
+   <dc:description>Retrouvez des milliers d&apos;autres cours et exercices interactifs 100% gratuits sur http://fr.khanacademy.org
+
+Vidéo sous licence CC-BY-SA.</dc:description>
+   <dc:creator>KhanAcademyFrancophone</dc:creator>
+   <dc:source>YouTube</dc:source>
+   <dc:rights>© KhanAcademyFrancophone</dc:rights>
+   
+   <!-- Métadonnées XMP -->
+   <xmp:CreateDate>2015-10-05T12:57:38Z</xmp:CreateDate>
+   <xmp:ModifyDate>2025-07-06T22:07:44.625483</xmp:ModifyDate>
+   
+   <!-- Métadonnées YouTube spécifiques -->
+   <youtube:videoId>n70Hr2MNr9A</youtube:videoId>
+   <youtube:channelId>UCxJOha9_0qZHuGf1d4imhyQ</youtube:channelId>
+   <youtube:duration>PT5M31S</youtube:duration>
+   <youtube:viewCount>1946</youtube:viewCount>
+   <youtube:likeCount>13</youtube:likeCount>
+   <youtube:commentCount>0</youtube:commentCount>
+   <youtube:categoryId>27</youtube:categoryId>
+   <youtube:language></youtube:language>
+   
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

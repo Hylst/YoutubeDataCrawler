@@ -61,24 +61,25 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 .metric-card {
-    background-color: #f0f2f6;
+    background-color: #ffffff;
+    border: 1px solid #6c757d;
     padding: 1rem;
     border-radius: 0.5rem;
     margin: 0.5rem 0;
 }
 .success-message {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #d1f2eb;
+    color: #0c5460;
     padding: 0.75rem;
     border-radius: 0.25rem;
-    border: 1px solid #c3e6cb;
+    border: 1px solid #17a2b8;
 }
 .error-message {
     background-color: #f8d7da;
     color: #721c24;
     padding: 0.75rem;
     border-radius: 0.25rem;
-    border: 1px solid #f5c6cb;
+    border: 1px solid #dc3545;
 }
 </style>
 """, unsafe_allow_html=True)

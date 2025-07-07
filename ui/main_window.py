@@ -20,10 +20,10 @@ try:
         QMenuBar, QStatusBar, QTabWidget, QMessageBox, QProgressBar,
         QLabel, QSplitter, QTextEdit, QFrame, QDialog, QLineEdit, QPushButton,
         QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox, QComboBox, QSlider,
-        QGridLayout, QListWidget, QListWidgetItem
+        QGridLayout, QListWidget, QListWidgetItem, QFileDialog, QScrollArea, QMenu
     )
     from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, pyqtSlot
-    from PyQt6.QtGui import QAction, QIcon, QFont
+    from PyQt6.QtGui import QAction, QIcon, QFont, QPixmap
     PYQT6_AVAILABLE = True
 except ImportError:
     PYQT6_AVAILABLE = False
@@ -42,6 +42,7 @@ from core.presets import PresetManager
 from core.filters import DataFilter
 from core.export import ExportManager
 from core.voice_input import VoiceInputManager
+from utils.thumbnail_manager import ThumbnailManager
 from database.db_init import get_connection
 
 # Configuration du logging
@@ -91,6 +92,10 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         self.export_manager = ExportManager(str(exports_output_dir), self.db_connection)
         self.voice_manager = VoiceInputManager()
         
+        # Create output directory for thumbnails
+        thumbnails_output_dir = project_root / 'thumbnails'
+        self.thumbnail_manager = ThumbnailManager(str(thumbnails_output_dir))
+        
         # Variables d'état
         self.current_data = []
         self.filtered_data = []
@@ -105,7 +110,6 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         self.max_duration_filter = None
         self.date_after_filter = None
         self.date_before_filter = None
-        self.content_type_combo = None
         self.presets_list = None
         self.preset_details_text = None
         
@@ -301,21 +305,23 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Section Type de contenu
-        content_type_frame = QFrame()
-        content_type_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        content_type_layout = QVBoxLayout(content_type_frame)
+        # Note d'information sur la détection automatique
+        info_frame = QFrame()
+        info_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        info_frame.setStyleSheet("QFrame { background-color: #f8f9fa; border: 2px solid #0066cc; border-radius: 5px; }")
+        info_layout = QVBoxLayout(info_frame)
         
-        content_type_label = QLabel("Type de contenu:")
-        content_type_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
-        content_type_layout.addWidget(content_type_label)
+        info_label = QLabel("ℹ️ Détection automatique du type de contenu")
+        info_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        info_label.setStyleSheet("color: #1a1a1a; font-weight: bold;")
+        info_layout.addWidget(info_label)
         
-        self.content_type_combo = QComboBox()
-        self.content_type_combo.addItems(["Tous", "Vidéos", "Chaînes", "Playlists"])
-        self.content_type_combo.currentTextChanged.connect(self.apply_content_type_filter)
-        content_type_layout.addWidget(self.content_type_combo)
+        info_text = QLabel("Le type de contenu (vidéo, playlist, chaîne) est détecté automatiquement lors de l'analyse d'URL.")
+        info_text.setWordWrap(True)
+        info_text.setStyleSheet("color: #333333; font-size: 9pt;")
+        info_layout.addWidget(info_text)
         
-        layout.addWidget(content_type_frame)
+        layout.addWidget(info_frame)
         
         # Section Filtres par statistiques
         stats_frame = QFrame()
@@ -488,14 +494,31 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         videos_widget = QWidget()
         videos_layout = QVBoxLayout(videos_widget)
         
-        # Table des vidéos
+        # Table des vidéos avec tous les champs de métadonnées
         self.videos_table = QTableWidget()
-        self.videos_table.setColumnCount(6)
+        self.videos_table.setColumnCount(25)
         self.videos_table.setHorizontalHeaderLabels([
-            "Titre", "Chaîne", "Vues", "Likes", "Durée", "Date"
+            "Titre", "Chaîne", "Vues", "Likes", "Commentaires", "Durée", "Date", 
+            "Mots-clés", "Description", "Catégorie", "Langue", "Définition", 
+            "Sous-titres", "Statut", "Licence", "Contenu sous licence", "Dimension", 
+            "Projection", "Intégrable", "Stats publiques", "Catégories thématiques", 
+            "Langue audio", "Contenu en direct", "Lieu d'enregistrement", "Date d'enregistrement"
         ])
-        self.videos_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Permettre le redimensionnement et la réorganisation des colonnes
+        self.videos_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.videos_table.horizontalHeader().setStretchLastSection(True)
+        self.videos_table.horizontalHeader().setSectionsMovable(True)
         self.videos_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        # Activer le scrolling horizontal
+        self.videos_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Définir des largeurs par défaut pour les colonnes
+        self.set_default_column_widths_videos()
+        
+        # Ajouter un menu contextuel pour la gestion des colonnes
+        self.videos_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.videos_table.customContextMenuRequested.connect(self.show_videos_column_menu)
+        
         videos_layout.addWidget(self.videos_table)
         
         self.content_tabs.addTab(videos_widget, "Vidéos")
@@ -504,14 +527,28 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         channels_widget = QWidget()
         channels_layout = QVBoxLayout(channels_widget)
         
-        # Table des chaînes
+        # Table des chaînes avec métadonnées étendues
         self.channels_table = QTableWidget()
-        self.channels_table.setColumnCount(5)
+        self.channels_table.setColumnCount(8)
         self.channels_table.setHorizontalHeaderLabels([
-            "Nom", "Abonnés", "Vidéos", "Vues totales", "Pays"
+            "Nom", "Description", "Abonnés", "Vidéos", "Vues totales", 
+            "Pays", "Date création", "Thumbnail"
         ])
-        self.channels_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # Permettre le redimensionnement et la réorganisation des colonnes
+        self.channels_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.channels_table.horizontalHeader().setStretchLastSection(True)
+        self.channels_table.horizontalHeader().setSectionsMovable(True)
         self.channels_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        # Activer le scrolling horizontal
+        self.channels_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Définir des largeurs par défaut pour les colonnes
+        self.set_default_column_widths_channels()
+        
+        # Ajouter un menu contextuel pour la gestion des colonnes
+        self.channels_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.channels_table.customContextMenuRequested.connect(self.show_channels_column_menu)
+        
         channels_layout.addWidget(self.channels_table)
         
         self.content_tabs.addTab(channels_widget, "Chaînes")
@@ -596,9 +633,84 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         details_title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         details_layout.addWidget(details_title)
         
+        # Zone d'affichage du thumbnail
+        thumbnail_frame = QFrame()
+        thumbnail_frame.setFrameStyle(QFrame.Shape.Box)
+        thumbnail_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 2px solid #495057;
+                border-radius: 8px;
+                margin: 5px;
+                padding: 5px;
+            }
+        """)
+        thumbnail_layout = QVBoxLayout(thumbnail_frame)
+        
+        self.thumbnail_label = QLabel("Aucun thumbnail")
+        self.thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.thumbnail_label.setMinimumHeight(120)
+        self.thumbnail_label.setStyleSheet("""
+            QLabel {
+                color: #212529;
+                font-style: italic;
+                background-color: #f8f9fa;
+                border: 2px dashed #495057;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 10pt;
+            }
+        """)
+        thumbnail_layout.addWidget(self.thumbnail_label)
+        
+        # Boutons pour le thumbnail
+        thumbnail_buttons_layout = QHBoxLayout()
+        
+        # Bouton de téléchargement du thumbnail
+        self.download_thumbnail_btn = QPushButton("📥 Télécharger")
+        self.download_thumbnail_btn.setEnabled(False)
+        self.download_thumbnail_btn.clicked.connect(self.download_current_thumbnail)
+        
+        # Bouton pour ouvrir en pleine résolution
+        self.fullres_thumbnail_btn = QPushButton("🔍 Pleine résolution")
+        self.fullres_thumbnail_btn.setEnabled(False)
+        self.fullres_thumbnail_btn.clicked.connect(self.show_full_resolution_thumbnail)
+        
+        thumbnail_buttons_layout.addWidget(self.download_thumbnail_btn)
+        thumbnail_buttons_layout.addWidget(self.fullres_thumbnail_btn)
+        # Style pour les boutons de thumbnail
+        thumbnail_button_style = """
+            QPushButton {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 9pt;
+            }
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;
+                color: #ffffff;
+                border: 1px solid #495057;
+            }
+        """
+        
+        self.download_thumbnail_btn.setStyleSheet(thumbnail_button_style)
+        self.fullres_thumbnail_btn.setStyleSheet(thumbnail_button_style)
+        
+        thumbnail_layout.addLayout(thumbnail_buttons_layout)
+        
+        details_layout.addWidget(thumbnail_frame)
+        
+        # Zone de texte pour les détails
         self.details_text = QTextEdit()
         self.details_text.setPlaceholderText("Sélectionnez un élément pour voir les détails...")
         self.details_text.setReadOnly(True)
+        self.details_text.setMaximumHeight(150)
         details_layout.addWidget(self.details_text)
         
         layout.addWidget(details_frame)
@@ -610,6 +722,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         
         actions_title = QLabel("Actions rapides")
         actions_title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        actions_title.setStyleSheet("QLabel { color: #212529; margin-bottom: 5px; }")
         actions_layout.addWidget(actions_title)
         
         # Boutons d'action
@@ -738,7 +851,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         
         # Type de contenu détecté
         self.content_type_label = QLabel("Type: Non détecté")
-        self.content_type_label.setStyleSheet("color: gray; font-style: italic;")
+        self.content_type_label.setStyleSheet("color: #495057; font-style: italic; font-weight: bold;")
         layout.addWidget(self.content_type_label)
         
         # Connexion pour détecter le type en temps réel
@@ -747,13 +860,56 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         # Sélection du preset d'analyse
         preset_frame = QFrame()
         preset_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        preset_frame.setStyleSheet("""
+            QFrame { 
+                background-color: #f8f9fa; 
+                border: 2px solid #0066cc; 
+                border-radius: 8px; 
+                margin: 5px;
+            }
+        """)
         preset_layout = QVBoxLayout(preset_frame)
         
-        preset_label = QLabel("Niveau d'analyse:")
-        preset_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        preset_label = QLabel("🎯 Niveau d'analyse:")
+        preset_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        preset_label.setStyleSheet("""
+            color: #1a1a1a; 
+            margin: 8px 5px 5px 5px;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+        """)
         preset_layout.addWidget(preset_label)
         
         self.preset_combo = QComboBox()
+        self.preset_combo.setStyleSheet("""
+            QComboBox {
+                padding: 10px;
+                border: 2px solid #0066cc;
+                border-radius: 6px;
+                background-color: #ffffff;
+                font-size: 10pt;
+                font-weight: bold;
+                color: #1a1a1a;
+                margin: 5px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid #0066cc;
+                margin-right: 5px;
+            }
+            QComboBox:hover {
+                background-color: #e6f3ff;
+                border-color: #0052a3;
+            }
+        """)
         presets = self.preset_manager.get_all_presets()
         for preset in presets:
             self.preset_combo.addItem(preset['name'], preset)
@@ -762,7 +918,19 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         # Description du preset sélectionné
         self.preset_description = QLabel("")
         self.preset_description.setWordWrap(True)
-        self.preset_description.setStyleSheet("color: #666; font-size: 8pt; padding: 5px;")
+        self.preset_description.setStyleSheet("""
+            QLabel {
+                color: #1a1a1a;
+                font-size: 9pt;
+                padding: 12px;
+                background-color: #ffffff;
+                border: 2px solid #0066cc;
+                border-radius: 6px;
+                line-height: 1.5;
+                margin: 5px;
+                font-weight: 600;
+            }
+        """)
         preset_layout.addWidget(self.preset_description)
         
         # Connexion pour mettre à jour la description
@@ -792,7 +960,11 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
             current_preset = self.preset_combo.currentData()
             if current_preset:
                 description = current_preset.get('description', 'Aucune description disponible')
-                self.preset_description.setText(description)
+                # Remplacer les \n par des sauts de ligne HTML pour un meilleur affichage
+                formatted_description = description.replace('\n', '<br>')
+                self.preset_description.setText(formatted_description)
+            else:
+                self.preset_description.setText('Sélectionnez un preset pour voir sa description')
     
     def detect_url_type(self):
         """Détecte le type d'URL YouTube en temps réel."""
@@ -800,7 +972,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         
         if not url:
             self.content_type_label.setText("Type: Non détecté")
-            self.content_type_label.setStyleSheet("color: gray; font-style: italic;")
+            self.content_type_label.setStyleSheet("color: #495057; font-style: italic; font-weight: bold;")
             return
         
         if self.youtube_api:
@@ -864,6 +1036,16 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
                     # Filtrage des champs selon le preset
                     filtered_data = self.filter_data_by_preset(video_data, preset_filters)
                     
+                    # Téléchargement du thumbnail
+                    self.progress_update.emit(80)
+                    self.status_message.emit("Téléchargement du thumbnail...")
+                    thumbnail_result = self.thumbnail_manager.download_and_process_thumbnail(video_data, 'high')
+                    if thumbnail_result:
+                        image_path, xmp_path = thumbnail_result
+                        filtered_data['thumbnail_local_path'] = image_path
+                        filtered_data['thumbnail_xmp_path'] = xmp_path
+                        logger.info(f"Thumbnail téléchargé: {image_path}")
+                    
                     self.progress_update.emit(100)
                     self.status_message.emit(f"Vidéo analysée avec preset '{selected_preset['name']}'")
                     self.display_video_data([filtered_data])
@@ -879,11 +1061,20 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
                     # Récupération des vidéos de la playlist
                     video_ids = self.youtube_api.get_playlist_videos(playlist_id, 20)  # Limite à 20 vidéos
                     videos_data = []
-                    for vid_id in video_ids:
+                    for i, vid_id in enumerate(video_ids):
                         video_data = self.youtube_api.get_video_details(vid_id, extended=extended_info)
                         if video_data:
                             # Filtrage des champs selon le preset
                             filtered_data = self.filter_data_by_preset(video_data, preset_filters)
+                            
+                            # Téléchargement du thumbnail
+                            self.status_message.emit(f"Téléchargement thumbnail {i+1}/{len(video_ids)}...")
+                            thumbnail_result = self.thumbnail_manager.download_and_process_thumbnail(video_data, 'high')
+                            if thumbnail_result:
+                                image_path, xmp_path = thumbnail_result
+                                filtered_data['thumbnail_local_path'] = image_path
+                                filtered_data['thumbnail_xmp_path'] = xmp_path
+                            
                             videos_data.append(filtered_data)
                     
                     self.progress_update.emit(100)
@@ -936,7 +1127,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         return filtered_data
     
     def display_video_data(self, videos_data: List[Dict]):
-        """Affiche les données des vidéos dans la table."""
+        """Affiche les données des vidéos dans la table avec tous les champs de métadonnées."""
         self.current_data = videos_data
         self.filtered_data = videos_data.copy()
         
@@ -962,17 +1153,127 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
             likes_item = QTableWidgetItem(f"{likes:,}")
             self.videos_table.setItem(row, 3, likes_item)
             
+            # Commentaires
+            comments = video.get('comment_count', 0)
+            comments_item = QTableWidgetItem(f"{comments:,}")
+            self.videos_table.setItem(row, 4, comments_item)
+            
             # Durée (conversion ISO 8601 vers format lisible)
             duration = video.get('duration', 'N/A')
             duration_readable = self.convert_duration(duration)
             duration_item = QTableWidgetItem(duration_readable)
-            self.videos_table.setItem(row, 4, duration_item)
+            self.videos_table.setItem(row, 5, duration_item)
             
             # Date
             published_at = video.get('published_at', 'N/A')
             date_readable = self.convert_date(published_at)
             date_item = QTableWidgetItem(date_readable)
-            self.videos_table.setItem(row, 5, date_item)
+            self.videos_table.setItem(row, 6, date_item)
+            
+            # Mots-clés (tags)
+            tags = video.get('tags', [])
+            if isinstance(tags, list):
+                tags_text = ', '.join(tags[:5])  # Limiter à 5 tags pour l'affichage
+                if len(tags) > 5:
+                    tags_text += f' (+{len(tags)-5} autres)'
+            else:
+                tags_text = str(tags) if tags else 'N/A'
+            tags_item = QTableWidgetItem(tags_text)
+            tags_item.setToolTip(', '.join(tags) if isinstance(tags, list) else str(tags))
+            self.videos_table.setItem(row, 7, tags_item)
+            
+            # Description (tronquée)
+            description = video.get('description', 'N/A')
+            if description and description != 'N/A':
+                desc_preview = description[:100] + '...' if len(description) > 100 else description
+            else:
+                desc_preview = 'N/A'
+            desc_item = QTableWidgetItem(desc_preview)
+            desc_item.setToolTip(description)  # Description complète en tooltip
+            self.videos_table.setItem(row, 8, desc_item)
+            
+            # Catégorie
+            category_item = QTableWidgetItem(video.get('category_id', 'N/A'))
+            self.videos_table.setItem(row, 9, category_item)
+            
+            # Langue
+            language_item = QTableWidgetItem(video.get('language', 'N/A'))
+            self.videos_table.setItem(row, 10, language_item)
+            
+            # Définition
+            definition_item = QTableWidgetItem(video.get('definition', 'N/A'))
+            self.videos_table.setItem(row, 11, definition_item)
+            
+            # Sous-titres
+            caption = video.get('caption', 'false')
+            caption_text = 'Oui' if caption == 'true' else 'Non'
+            caption_item = QTableWidgetItem(caption_text)
+            self.videos_table.setItem(row, 12, caption_item)
+            
+            # Statut de confidentialité
+            privacy_item = QTableWidgetItem(video.get('privacy_status', 'N/A'))
+            self.videos_table.setItem(row, 13, privacy_item)
+            
+            # Licence
+            license_item = QTableWidgetItem(video.get('license', 'N/A'))
+            self.videos_table.setItem(row, 14, license_item)
+            
+            # Contenu sous licence
+            licensed_content = video.get('licensed_content', False)
+            licensed_text = 'Oui' if licensed_content else 'Non'
+            licensed_item = QTableWidgetItem(licensed_text)
+            self.videos_table.setItem(row, 15, licensed_item)
+            
+            # Dimension
+            dimension_item = QTableWidgetItem(video.get('dimension', 'N/A'))
+            self.videos_table.setItem(row, 16, dimension_item)
+            
+            # Projection
+            projection_item = QTableWidgetItem(video.get('projection', 'N/A'))
+            self.videos_table.setItem(row, 17, projection_item)
+            
+            # Intégrable
+            embeddable = video.get('embeddable', True)
+            embeddable_text = 'Oui' if embeddable else 'Non'
+            embeddable_item = QTableWidgetItem(embeddable_text)
+            self.videos_table.setItem(row, 18, embeddable_item)
+            
+            # Statistiques publiques visibles
+            public_stats = video.get('public_stats_viewable', True)
+            public_stats_text = 'Oui' if public_stats else 'Non'
+            public_stats_item = QTableWidgetItem(public_stats_text)
+            self.videos_table.setItem(row, 19, public_stats_item)
+            
+            # Catégories thématiques
+            topic_categories = video.get('topic_categories', [])
+            if isinstance(topic_categories, list) and topic_categories:
+                topics_text = ', '.join([cat.split('/')[-1] for cat in topic_categories[:3]])
+                if len(topic_categories) > 3:
+                    topics_text += f' (+{len(topic_categories)-3} autres)'
+            else:
+                topics_text = 'N/A'
+            topics_item = QTableWidgetItem(topics_text)
+            if isinstance(topic_categories, list):
+                topics_item.setToolTip(', '.join([cat.split('/')[-1] for cat in topic_categories]))
+            self.videos_table.setItem(row, 20, topics_item)
+            
+            # Langue audio par défaut
+            audio_lang_item = QTableWidgetItem(video.get('default_audio_language', 'N/A'))
+            self.videos_table.setItem(row, 21, audio_lang_item)
+            
+            # Contenu en direct
+            live_content_item = QTableWidgetItem(video.get('live_broadcast_content', 'N/A'))
+            self.videos_table.setItem(row, 22, live_content_item)
+            
+            # Lieu d'enregistrement
+            location_item = QTableWidgetItem(video.get('location_description', 'N/A'))
+            self.videos_table.setItem(row, 23, location_item)
+            
+            # Date d'enregistrement
+            recording_date = video.get('recording_date', 'N/A')
+            recording_date_readable = self.convert_date(recording_date)
+            recording_date_item = QTableWidgetItem(recording_date_readable)
+            self.videos_table.setItem(row, 24, recording_date_item)
         
         # Basculer vers l'onglet vidéos
         self.content_tabs.setCurrentIndex(0)
@@ -981,7 +1282,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         self.update_details_panel()
     
     def display_channel_data(self, channels_data: List[Dict]):
-        """Affiche les données des chaînes dans la table."""
+        """Affiche les données des chaînes dans la table avec métadonnées étendues."""
         self.current_data = channels_data
         self.filtered_data = channels_data.copy()
         
@@ -993,25 +1294,53 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
             name_item = QTableWidgetItem(channel.get('title', 'N/A'))
             self.channels_table.setItem(row, 0, name_item)
             
+            # Description (tronquée)
+            description = channel.get('description', 'N/A')
+            if description and description != 'N/A':
+                desc_preview = description[:150] + '...' if len(description) > 150 else description
+            else:
+                desc_preview = 'N/A'
+            desc_item = QTableWidgetItem(desc_preview)
+            desc_item.setToolTip(description)  # Description complète en tooltip
+            self.channels_table.setItem(row, 1, desc_item)
+            
             # Abonnés
             subscribers = channel.get('subscriber_count', 0)
             subscribers_item = QTableWidgetItem(f"{subscribers:,}")
-            self.channels_table.setItem(row, 1, subscribers_item)
+            self.channels_table.setItem(row, 2, subscribers_item)
             
             # Vidéos
             video_count = channel.get('video_count', 0)
             videos_item = QTableWidgetItem(f"{video_count:,}")
-            self.channels_table.setItem(row, 2, videos_item)
+            self.channels_table.setItem(row, 3, videos_item)
             
             # Vues totales
             total_views = channel.get('view_count', 0)
             views_item = QTableWidgetItem(f"{total_views:,}")
-            self.channels_table.setItem(row, 3, views_item)
+            self.channels_table.setItem(row, 4, views_item)
             
             # Pays
             country = channel.get('country', 'N/A')
             country_item = QTableWidgetItem(country)
-            self.channels_table.setItem(row, 4, country_item)
+            self.channels_table.setItem(row, 5, country_item)
+            
+            # Date de création
+            published_at = channel.get('published_at', 'N/A')
+            date_readable = self.convert_date(published_at)
+            date_item = QTableWidgetItem(date_readable)
+            self.channels_table.setItem(row, 6, date_item)
+            
+            # Thumbnail URL (tronquée)
+            thumbnail_url = channel.get('thumbnail_url', 'N/A')
+            if thumbnail_url and thumbnail_url != 'N/A':
+                thumbnail_preview = thumbnail_url.split('/')[-1] if '/' in thumbnail_url else thumbnail_url
+                if len(thumbnail_preview) > 30:
+                    thumbnail_preview = thumbnail_preview[:30] + '...'
+            else:
+                thumbnail_preview = 'N/A'
+            thumbnail_item = QTableWidgetItem(thumbnail_preview)
+            thumbnail_item.setToolTip(thumbnail_url)  # URL complète en tooltip
+            self.channels_table.setItem(row, 7, thumbnail_item)
         
         # Basculer vers l'onglet chaînes
         self.content_tabs.setCurrentIndex(1)
@@ -1057,6 +1386,11 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         """Met à jour le panneau de détails avec un résumé."""
         if not self.current_data:
             self.details_text.setText("Aucune donnée disponible.")
+            self.thumbnail_label.setText("Aucun thumbnail")
+            self.thumbnail_label.setPixmap(QPixmap())
+            self.download_thumbnail_btn.setEnabled(False)
+            if hasattr(self, 'fullres_thumbnail_btn'):
+                self.fullres_thumbnail_btn.setEnabled(False)
             return
         
         # Génération d'un résumé
@@ -1068,14 +1402,300 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
             summary += f"Total des vues: {total_views:,}\n"
             summary += f"Total des likes: {total_likes:,}\n"
             summary += f"Moyenne des vues: {total_views // len(self.current_data):,}\n"
+            
+            # Affichage du thumbnail de la première vidéo
+            if self.current_data[0].get('thumbnail_local_path'):
+                self.display_thumbnail(self.current_data[0]['thumbnail_local_path'])
+                self.download_thumbnail_btn.setEnabled(True)
+            else:
+                self.thumbnail_label.setText("Thumbnail non disponible")
+                self.thumbnail_label.setPixmap(QPixmap())
+                self.download_thumbnail_btn.setEnabled(False)
+                if hasattr(self, 'fullres_thumbnail_btn'):
+                    self.fullres_thumbnail_btn.setEnabled(False)
         
         elif self.current_data and 'subscriber_count' in self.current_data[0]:  # Chaînes
             total_subscribers = sum(channel.get('subscriber_count', 0) for channel in self.current_data)
             total_videos = sum(channel.get('video_count', 0) for channel in self.current_data)
             summary += f"Total des abonnés: {total_subscribers:,}\n"
             summary += f"Total des vidéos: {total_videos:,}\n"
+            
+            # Pas de thumbnail pour les chaînes
+            self.thumbnail_label.setText("Pas de thumbnail pour les chaînes")
+            self.thumbnail_label.setPixmap(QPixmap())
+            self.download_thumbnail_btn.setEnabled(False)
+            if hasattr(self, 'fullres_thumbnail_btn'):
+                self.fullres_thumbnail_btn.setEnabled(False)
         
         self.details_text.setText(summary)
+    
+    def display_thumbnail(self, image_path: str):
+        """Affiche un thumbnail dans le panneau de détails."""
+        try:
+            if os.path.exists(image_path):
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    # Redimensionner l'image pour s'adapter au label (taille plus grande)
+                    target_size = self.thumbnail_label.size()
+                    # Augmenter la taille d'affichage de 50%
+                    larger_size = target_size * 1.5
+                    scaled_pixmap = pixmap.scaled(
+                        larger_size,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    self.thumbnail_label.setPixmap(scaled_pixmap)
+                    self.thumbnail_label.setText("")  # Effacer le texte
+                    
+                    # Stocker le chemin et le pixmap original pour le téléchargement et l'affichage pleine résolution
+                    self.current_thumbnail_path = image_path
+                    self.original_thumbnail_pixmap = pixmap
+                    
+                    # Activer les boutons de thumbnail
+                    self.download_thumbnail_btn.setEnabled(True)
+                    if hasattr(self, 'fullres_thumbnail_btn'):
+                        self.fullres_thumbnail_btn.setEnabled(True)
+                    
+                    # Rendre le label cliquable pour l'affichage pleine résolution
+                    self.thumbnail_label.mousePressEvent = lambda event: self.show_full_resolution_thumbnail()
+                    self.thumbnail_label.setCursor(Qt.CursorShape.PointingHandCursor)
+                    self.thumbnail_label.setToolTip("Cliquez pour voir en pleine résolution")
+                else:
+                    self.thumbnail_label.setText("Erreur de chargement")
+                    self.thumbnail_label.setPixmap(QPixmap())
+                    self.download_thumbnail_btn.setEnabled(False)
+                    if hasattr(self, 'fullres_thumbnail_btn'):
+                        self.fullres_thumbnail_btn.setEnabled(False)
+            else:
+                self.thumbnail_label.setText("Fichier introuvable")
+                self.thumbnail_label.setPixmap(QPixmap())
+                self.download_thumbnail_btn.setEnabled(False)
+                if hasattr(self, 'fullres_thumbnail_btn'):
+                    self.fullres_thumbnail_btn.setEnabled(False)
+        except Exception as e:
+            logger.error(f"Erreur lors de l'affichage du thumbnail: {str(e)}")
+            self.thumbnail_label.setText("Erreur d'affichage")
+            self.thumbnail_label.setPixmap(QPixmap())
+            self.download_thumbnail_btn.setEnabled(False)
+            if hasattr(self, 'fullres_thumbnail_btn'):
+                self.fullres_thumbnail_btn.setEnabled(False)
+    
+    def show_full_resolution_thumbnail(self):
+        """Affiche le thumbnail en pleine résolution dans une fenêtre séparée."""
+        if not hasattr(self, 'original_thumbnail_pixmap') or self.original_thumbnail_pixmap.isNull():
+            QMessageBox.warning(self, "Erreur", "Aucun thumbnail à afficher.")
+            return
+        
+        try:
+            # Créer une nouvelle fenêtre pour l'affichage pleine résolution
+            full_res_dialog = QDialog(self)
+            full_res_dialog.setWindowTitle("Thumbnail - Pleine résolution")
+            full_res_dialog.setModal(True)
+            
+            # Layout principal
+            layout = QVBoxLayout(full_res_dialog)
+            
+            # Label pour l'image
+            image_label = QLabel()
+            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            image_label.setPixmap(self.original_thumbnail_pixmap)
+            
+            # Scroll area pour gérer les grandes images
+            scroll_area = QScrollArea()
+            scroll_area.setWidget(image_label)
+            scroll_area.setWidgetResizable(True)
+            layout.addWidget(scroll_area)
+            
+            # Boutons
+            buttons_layout = QHBoxLayout()
+            
+            download_btn = QPushButton("Télécharger")
+            download_btn.clicked.connect(self.download_current_thumbnail)
+            buttons_layout.addWidget(download_btn)
+            
+            close_btn = QPushButton("Fermer")
+            close_btn.clicked.connect(full_res_dialog.accept)
+            buttons_layout.addWidget(close_btn)
+            
+            layout.addLayout(buttons_layout)
+            
+            # Ajuster la taille de la fenêtre
+            pixmap_size = self.original_thumbnail_pixmap.size()
+            dialog_width = min(pixmap_size.width() + 50, 1200)
+            dialog_height = min(pixmap_size.height() + 100, 800)
+            full_res_dialog.resize(dialog_width, dialog_height)
+            
+            full_res_dialog.exec()
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'affichage pleine résolution: {str(e)}")
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'affichage: {str(e)}")
+    
+    def download_current_thumbnail(self):
+        """Télécharge le thumbnail actuellement affiché."""
+        if not hasattr(self, 'current_thumbnail_path') or not self.current_thumbnail_path:
+            QMessageBox.warning(self, "Erreur", "Aucun thumbnail à télécharger.")
+            return
+        
+        try:
+            # Dialogue de sauvegarde
+            file_dialog = QFileDialog()
+            file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+            file_dialog.setNameFilter("Images (*.jpg *.jpeg *.png)")
+            
+            # Nom de fichier par défaut basé sur le titre de la vidéo
+            if self.current_data and self.current_data[0].get('title'):
+                title = self.current_data[0]['title']
+                # Slugifier le titre pour un nom de fichier valide
+                safe_title = self.thumbnail_manager.slugify_title(title)
+                default_name = f"{safe_title}_thumbnail.jpg"
+                file_dialog.selectFile(default_name)
+            
+            if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
+                save_path = file_dialog.selectedFiles()[0]
+                
+                # Copier le fichier
+                import shutil
+                shutil.copy2(self.current_thumbnail_path, save_path)
+                
+                # Copier aussi le fichier XMP s'il existe
+                xmp_source = self.current_thumbnail_path.replace('.jpg', '.xmp')
+                if os.path.exists(xmp_source):
+                    xmp_dest = save_path.replace('.jpg', '.xmp').replace('.jpeg', '.xmp').replace('.png', '.xmp')
+                    shutil.copy2(xmp_source, xmp_dest)
+                
+                QMessageBox.information(self, "Succès", f"Thumbnail téléchargé: {save_path}")
+                self.status_message.emit(f"Thumbnail sauvegardé: {os.path.basename(save_path)}")
+                
+        except Exception as e:
+            logger.error(f"Erreur lors du téléchargement du thumbnail: {str(e)}")
+            QMessageBox.critical(self, "Erreur", f"Erreur lors du téléchargement: {str(e)}")
+    
+    def set_default_column_widths_videos(self):
+        """Définit les largeurs par défaut pour les colonnes de la table des vidéos."""
+        default_widths = {
+            0: 200,  # Titre
+            1: 120,  # Chaîne
+            2: 80,   # Vues
+            3: 80,   # Likes
+            4: 80,   # Commentaires
+            5: 80,   # Durée
+            6: 100,  # Date
+            7: 150,  # Mots-clés
+            8: 200,  # Description
+            9: 80,   # Catégorie
+            10: 80,  # Langue
+            11: 80,  # Définition
+            12: 80,  # Sous-titres
+            13: 80,  # Statut
+            14: 80,  # Licence
+            15: 120, # Contenu sous licence
+            16: 100, # Dimension
+            17: 100, # Projection
+            18: 100, # Intégrable
+            19: 120, # Stats publiques
+            20: 150, # Catégories thématiques
+            21: 120, # Langue audio
+            22: 120, # Contenu en direct
+            23: 150, # Lieu d'enregistrement
+            24: 150  # Date d'enregistrement
+        }
+        
+        for column, width in default_widths.items():
+            self.videos_table.setColumnWidth(column, width)
+    
+    def set_default_column_widths_channels(self):
+        """Définit les largeurs par défaut pour les colonnes de la table des chaînes."""
+        default_widths = {
+            0: 150,  # Nom
+            1: 250,  # Description
+            2: 100,  # Abonnés
+            3: 80,   # Vidéos
+            4: 120,  # Vues totales
+            5: 80,   # Pays
+            6: 100,  # Date création
+            7: 120   # Thumbnail
+        }
+        
+        for column, width in default_widths.items():
+            self.channels_table.setColumnWidth(column, width)
+    
+    def show_videos_column_menu(self, position):
+        """Affiche le menu contextuel pour la gestion des colonnes de vidéos."""
+        menu = QMenu()
+        
+        # Action pour ajuster automatiquement les colonnes
+        auto_resize_action = menu.addAction("Ajuster automatiquement")
+        auto_resize_action.triggered.connect(self.auto_resize_videos_columns)
+        
+        # Action pour réinitialiser les largeurs
+        reset_widths_action = menu.addAction("Réinitialiser les largeurs")
+        reset_widths_action.triggered.connect(self.set_default_column_widths_videos)
+        
+        menu.addSeparator()
+        
+        # Actions pour masquer/afficher des colonnes
+        column_names = [
+            "Titre", "Chaîne", "Vues", "Likes", "Commentaires", "Durée", "Date",
+            "Mots-clés", "Description", "Catégorie", "Langue", "Définition",
+            "Sous-titres", "Statut", "Licence", "Contenu sous licence", "Dimension",
+            "Projection", "Intégrable", "Stats publiques", "Catégories thématiques",
+            "Langue audio", "Contenu en direct", "Lieu d'enregistrement", "Date d'enregistrement"
+        ]
+        
+        for i, name in enumerate(column_names):
+            action = menu.addAction(f"Masquer {name}" if not self.videos_table.isColumnHidden(i) else f"Afficher {name}")
+            action.triggered.connect(lambda checked, col=i: self.toggle_videos_column(col))
+        
+        menu.exec(self.videos_table.mapToGlobal(position))
+    
+    def show_channels_column_menu(self, position):
+        """Affiche le menu contextuel pour la gestion des colonnes de chaînes."""
+        menu = QMenu()
+        
+        # Action pour ajuster automatiquement les colonnes
+        auto_resize_action = menu.addAction("Ajuster automatiquement")
+        auto_resize_action.triggered.connect(self.auto_resize_channels_columns)
+        
+        # Action pour réinitialiser les largeurs
+        reset_widths_action = menu.addAction("Réinitialiser les largeurs")
+        reset_widths_action.triggered.connect(self.set_default_column_widths_channels)
+        
+        menu.addSeparator()
+        
+        # Actions pour masquer/afficher des colonnes
+        column_names = [
+            "Nom", "Description", "Abonnés", "Vidéos", "Vues totales",
+            "Pays", "Date création", "Thumbnail"
+        ]
+        
+        for i, name in enumerate(column_names):
+            action = menu.addAction(f"Masquer {name}" if not self.channels_table.isColumnHidden(i) else f"Afficher {name}")
+            action.triggered.connect(lambda checked, col=i: self.toggle_channels_column(col))
+        
+        menu.exec(self.channels_table.mapToGlobal(position))
+    
+    def auto_resize_videos_columns(self):
+        """Ajuste automatiquement la largeur des colonnes de vidéos."""
+        self.videos_table.resizeColumnsToContents()
+    
+    def auto_resize_channels_columns(self):
+        """Ajuste automatiquement la largeur des colonnes de chaînes."""
+        self.channels_table.resizeColumnsToContents()
+    
+    def toggle_videos_column(self, column):
+        """Masque/affiche une colonne de la table des vidéos."""
+        if self.videos_table.isColumnHidden(column):
+            self.videos_table.showColumn(column)
+        else:
+            self.videos_table.hideColumn(column)
+    
+    def toggle_channels_column(self, column):
+        """Masque/affiche une colonne de la table des chaînes."""
+        if self.channels_table.isColumnHidden(column):
+            self.channels_table.showColumn(column)
+        else:
+            self.channels_table.hideColumn(column)
     
     def start_analysis(self):
         """Lance l'analyse."""
@@ -1969,26 +2589,7 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         
         self.status_message.emit("Filtres réinitialisés")
     
-    def apply_content_type_filter(self):
-        """Applique le filtre par type de contenu."""
-        if not self.current_data:
-            return
-        
-        content_type = self.content_type_combo.currentText()
-        
-        if content_type == "Tous":
-            self.filtered_data = self.current_data.copy()
-        elif content_type == "Vidéos":
-            # Afficher seulement les vidéos
-            self.content_tabs.setCurrentIndex(0)
-        elif content_type == "Chaînes":
-            # Afficher seulement les chaînes
-            self.content_tabs.setCurrentIndex(1)
-        elif content_type == "Playlists":
-            # Afficher seulement les playlists
-            self.content_tabs.setCurrentIndex(2)
-        
-        self.status_message.emit(f"Filtre appliqué: {content_type}")
+
     
     def apply_advanced_filters(self):
         """Applique les filtres avancés depuis l'onglet Filtres."""
@@ -2174,9 +2775,6 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         self.date_after_filter.clear()
         self.date_before_filter.clear()
         
-        # Réinitialiser le type de contenu
-        self.content_type_combo.setCurrentText("Tous")
-        
         # Restaurer toutes les données
         if self.current_data:
             self.filtered_data = self.current_data.copy()
@@ -2208,24 +2806,32 @@ class YouTubeAnalyzerMainWindow(QMainWindow):
         """Gère la sélection d'un preset dans la liste."""
         preset = item.data(Qt.ItemDataRole.UserRole)
         if preset:
-            # Afficher les détails du preset
-            details = f"Nom: {preset['name']}\n"
-            details += f"Description: {preset.get('description', 'Aucune')}\n"
-            details += f"Type de contenu: {preset.get('content_type', 'N/A')}\n"
-            details += f"Modèle LLM: {preset.get('llm_model', 'N/A')}\n"
-            details += f"Format d'export: {preset.get('export_format', 'N/A')}\n"
+            # Afficher les détails du preset avec formatage HTML
+            details = f"<h3>{preset['name']}</h3>"
+            
+            # Description avec formatage des sauts de ligne
+            description = preset.get('description', 'Aucune description disponible')
+            formatted_description = description.replace('\n', '<br>')
+            details += f"<p><strong>Description:</strong><br>{formatted_description}</p>"
+            
+            # Informations techniques
+            details += f"<p><strong>Modèle LLM:</strong> {preset.get('llm_model', 'N/A')}<br>"
+            details += f"<strong>Format d'export:</strong> {preset.get('export_format', 'N/A')}</p>"
             
             # Afficher les filtres
             filters = preset.get('filters', {})
             if filters:
-                details += f"\nFiltres configurés:\n"
+                details += f"<p><strong>Configuration:</strong><br>"
                 if 'extended_info' in filters:
-                    details += f"- Informations étendues: {filters['extended_info']}\n"
+                    extended = "Oui" if filters['extended_info'] else "Non"
+                    details += f"• Informations étendues: {extended}<br>"
                 if 'fields' in filters:
                     fields_count = len(filters['fields'])
-                    details += f"- Champs extraits: {fields_count} champs\n"
+                    details += f"• Champs extraits: {fields_count} champs</p>"
             
-            self.preset_details_text.setText(details)
+            self.preset_details_text.setHtml(details)
+        else:
+            self.preset_details_text.setText("Sélectionnez un preset pour voir ses détails...")
     
     def apply_selected_preset(self):
         """Applique le preset sélectionné aux données actuelles."""

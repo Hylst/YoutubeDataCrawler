@@ -1,5 +1,64 @@
 # Changelog
 
+## [2025-01-06] - Thumbnail Integration & UI Improvements
+
+### ✨ Added
+- **Thumbnail Display**: Integrated thumbnail display in the details panel
+  - Added `thumbnail_frame` with `QLabel` for displaying video thumbnails
+  - Implemented thumbnail scaling and aspect ratio preservation
+  - Added "Télécharger Thumbnail" button for saving thumbnails
+  - Integrated with existing `ThumbnailManager` for thumbnail processing
+- **Download Functionality**: Added thumbnail download feature
+  - File dialog for choosing save location and format
+  - Automatic XMP metadata file generation alongside thumbnails
+  - Error handling for download operations
+  - Support for PNG and JPG formats
+- **Full Resolution Display**: New functionality for high-quality thumbnail viewing
+  - Dedicated window with scroll support for large images
+  - Click on thumbnail to open in full resolution
+  - Integrated download buttons in the viewing window
+  - Pointer cursor and informative tooltip
+
+### 🎨 Enhanced
+- **UI Improvements**: Comprehensive text contrast and readability improvements
+  - Changed preset label color from `#003d7a` to `#1a1a1a` for better contrast
+  - Added semi-transparent white background to preset labels
+  - Enhanced preset description styling with stronger borders
+  - Improved overall visual hierarchy in the preset section
+  - Changed preset frame background from `#e8f4fd` to `#ffffff` for better contrast
+  - Updated info frame and preset frame backgrounds to `#f8f9fa` for softer appearance
+  - Enhanced border colors from `#6c757d` to `#495057` for better definition
+  - Improved thumbnail label contrast with darker text color `#212529`
+  - Added consistent styling to action titles with proper contrast
+  - Enhanced disabled button styling with proper border definition
+  - Improved info label, info text, and content type label contrast and readability
+- **Details Panel**: Restructured details panel layout
+  - Added dedicated thumbnail display area
+  - Maintained existing details text functionality
+  - Improved spacing and organization
+- **High Resolution Thumbnails**: Improved quality of downloaded images
+  - Priority to maximum resolutions (maxres, standard, high)
+  - Intelligent fallback to best available qualities
+  - 50% larger display in main interface
+
+### 🔧 Technical Details
+- **New Methods**: Added `display_thumbnail()`, `download_current_thumbnail()`, and `show_full_resolution_thumbnail()` methods
+- **Import Updates**: Added `QFileDialog`, `QPixmap`, and `QScrollArea` imports for thumbnail functionality
+- **Error Handling**: Comprehensive error handling for thumbnail operations
+- **Integration**: Seamless integration with existing video data display logic
+- **Quality Settings**: Changed default from 'high' to 'maxres' for downloads
+- **Memory Management**: Storage of original pixmap for full resolution display
+
+### 📋 Completed
+- [x] Thumbnail display integration in details panel
+- [x] Download button functionality
+- [x] UI contrast improvements
+- [x] Error handling for thumbnail operations
+- [x] Integration with existing ThumbnailManager
+- [x] Full resolution thumbnail viewing
+- [x] High-quality image downloads
+- [x] Interface accessibility improvements
+
 ## [2025-01-XX] - LLM Integration & Configuration Updates
 
 ### ✨ Added
